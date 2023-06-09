@@ -1,5 +1,5 @@
-# urx-api
-URx REST API
+# URX API Server 
+This server is a Python application that uses Flask as a web framework to create an API for controlling a UR5e robot. The API allows users to send commands to the robot and receive feedback. The server relies on the urx library, which provides a Python interface for the URScript language that the robot understands.
 
 ## Installation and run setup.sh
 ```bash
@@ -7,7 +7,7 @@ pip install -r requirements.txt
 python setup.py 
 ```
 ## Environment variables
-There are 4 environment variables that need to be set:
+There are 5 environment variables that need to be set:
 - FLASK_HOST
 - FLASK_PORT
 - URX_HOST
