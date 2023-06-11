@@ -5,6 +5,7 @@ import socket
 from utils import parse_move_instruction, Logger
 from dotenv import load_dotenv
 from urx import robotiq_two_finger_gripper
+import json
 
 load_dotenv()
 HOST = os.getenv("URX_HOST")
@@ -60,6 +61,9 @@ class UrxEService:
         pass
 
     def get_program_running_timeout_limit(self):
+        pass
+
+    def get_position(self):
         pass
 
     def __wait_for_completion(self):
@@ -172,6 +176,17 @@ class DefaultUrxEService(UrxEService):
     def get_program_running_timeout_limit(self):
         self._logger.info(f"Getting program running timeout limit: {self._program_running_timeout_limit}")
         return self._program_running_timeout_limit
+    
+    def get_position(self):
+        data = self._s.recv(1024)
+        if not data:
+            return
+        position = data.decode().split(",")[1:7]
+        position = data.decode().split(",")[1:7]
+        position_dict = {"x": position[0], "y": position[1], "z": position[2], "rx": position[3], "ry": position[4], "rz": position[5]}
+        position_json = json.dumps(position_dict)
+        return position_json
+
 
     def __wait_for_completion(self):
         self._logger.info("Waiting for program to start")

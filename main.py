@@ -4,6 +4,7 @@ from logging.config import dictConfig
 
 from dotenv import load_dotenv
 from flask import Flask, request
+from flask_socketio import SocketIO
 from marshmallow import ValidationError
 from waitress import serve
 
@@ -31,6 +32,7 @@ dictConfig({
 })
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 logger = FlaskLogger(app)
 BOT_NAME = os.getenv("BOT_NAME")
 if os.getenv("ENVIRONMENT") == "dev":
@@ -51,6 +53,18 @@ def health_check():
         return ApiResponse(500, {"status": f"Error: {status}"}).to_json()
     return ApiResponse(200, {"status": "ok"}).to_json()
 
+@socketio.on("connect")
+def handle_connect():
+    print("Client connected")
+
+@socketio.on("disconnect")
+def handle_disconnect():
+    print("Client disconnected")
+
+@socketio.on("get_position")
+def handle_get_position():
+    position = urx_service.get_position()
+    socketio.emit("position", position)
 
 @app.route(f'/{BOT_NAME}/gripper/partial', methods=['POST'])
 def partial_gripper():
