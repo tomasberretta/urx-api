@@ -41,14 +41,23 @@ class ApiResponse:
         return json.dumps(self.__body), self.__status
 
 
-def parse_move_instruction(movement_type, coordinates, angles, acceleration, velocity, default_acceleration,
-                           default_velocity):
+def parse_move_instruction(movement_type, coordinates, angles, acceleration, velocity):
     vector = coordinates + angles
-    acceleration = default_acceleration if acceleration is None else acceleration
-    velocity = default_velocity if velocity is None else velocity
     instruction = f"move{movement_type}(p{str(vector)}, {acceleration}, {velocity})\n"
     encoded_instruction = instruction.encode("utf-8")
     return encoded_instruction
+
+
+def parse_translate_instruction(coordinates, acceleration, velocity):
+    instruction = f"translate(p{str(coordinates)}, {acceleration}, {velocity})\n"
+    encoded_instruction = instruction.encode("utf-8")
+    return encoded_instruction
+
+
+def get_acceleration_and_velocity_to_use(acceleration, velocity, default_acceleration, default_velocity):
+    acceleration = default_acceleration if acceleration is None else acceleration
+    velocity = default_velocity if velocity is None else velocity
+    return acceleration, velocity
 
 
 def validate_json_structure(request):

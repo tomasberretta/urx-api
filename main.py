@@ -8,7 +8,8 @@ from flask_socketio import SocketIO
 from marshmallow import ValidationError
 from waitress import serve
 
-from schemas import PartialGripperRequestSchema, MoveRequestSchema, SetConfigRequestSchema
+from schemas import PartialGripperRequestSchema, SetConfigRequestSchema, MoveJRequestSchema, \
+    MoveLRequestSchema, TranslateRequestSchema
 from urx_service import DefaultUrxEService, MockUrxEService
 from utils import ApiResponse, FlaskLogger, validate_json_structure
 
@@ -53,25 +54,29 @@ def health_check():
         return ApiResponse(500, {"status": f"Error: {status}"}).to_json()
     return ApiResponse(200, {"status": "ok"}).to_json()
 
+
 @socketio.on("connect")
 def handle_connect():
-    print("Client connected")
+    logger.info("Client connected")
+
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    print("Client disconnected")
+    logger.info("Client disconnected")
+
 
 @socketio.on("get_position")
 def handle_get_position():
     position = urx_service.get_position()
     socketio.emit("position", position)
 
+
 @app.route(f'/{BOT_NAME}/gripper/partial', methods=['POST'])
 def partial_gripper():
     try:
         validate_json_structure(request)
         data = PartialGripperRequestSchema().load(request.json)
-        logger.info('Entered POST /ur5e/gripper/partial')
+        logger.info(f'Entered POST /{BOT_NAME}/gripper/partial')
         amount = data['amount']
         urx_service.partial_gripper(amount=amount)
         return ApiResponse(200, {"status": f"Gripper partially moved to {amount}"}).to_json()
@@ -89,7 +94,7 @@ def partial_gripper():
 @app.route(f'/{BOT_NAME}/gripper/open', methods=['POST'])
 def open_gripper():
     try:
-        logger.info('Entered POST /ur5e/gripper/open')
+        logger.info(f'Entered POST /{BOT_NAME}/gripper/open')
         urx_service.open_gripper()
         return ApiResponse(200, {"status": "Gripper fully open"}).to_json()
     except Exception as e:
@@ -100,7 +105,7 @@ def open_gripper():
 @app.route(f'/{BOT_NAME}/gripper/close', methods=['POST'])
 def close_gripper():
     try:
-        logger.info('Entered POST /ur5e/gripper/close')
+        logger.info(f'Entered POST /{BOT_NAME}/gripper/close')
         urx_service.close_gripper()
         return ApiResponse(200, {"status": "Gripper fully closed"}).to_json()
     except Exception as e:
@@ -112,14 +117,12 @@ def close_gripper():
 def movej():
     try:
         validate_json_structure(request)
-        data = MoveRequestSchema().load(request.json)
-        logger.info('Entered POST /ur5e/movej')
-        coordinates = data['coordinates']
-        angles = data['angles']
-        # if acceleration and velocity are not provided, send as None
+        data = MoveJRequestSchema().load(request.json)
+        logger.info(f'Entered POST /{BOT_NAME}/movej')
+        joint_positions = data['joint_positions']
         acceleration = data.get('acceleration', None)
         velocity = data.get('velocity', None)
-        urx_service.movej(coordinates, angles, acceleration, velocity)
+        urx_service.movej(joint_positions, acceleration, velocity)
         return ApiResponse(200, {"status": f"Moved successfully"}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
@@ -136,8 +139,8 @@ def movej():
 def movel():
     try:
         validate_json_structure(request)
-        data = MoveRequestSchema().load(request.json)
-        logger.info('Entered POST /ur5e/movel')
+        data = MoveLRequestSchema().load(request.json)
+        logger.info(f'Entered POST /{BOT_NAME}/movel')
         coordinates = data['coordinates']
         angles = data['angles']
         acceleration = data['acceleration']
@@ -155,10 +158,32 @@ def movel():
         return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
 
 
+@app.route(f'/{BOT_NAME}/translate', methods=['POST'])
+def translate():
+    try:
+        validate_json_structure(request)
+        data = TranslateRequestSchema().load(request.json)
+        logger.info(f'Entered POST /{BOT_NAME}/translate')
+        coordinates = data['coordinates']
+        acceleration = data['acceleration']
+        velocity = data['velocity']
+        urx_service.translate(coordinates, acceleration, velocity)
+        return ApiResponse(200, {"status": f"Moved successfully"}).to_json()
+    except ValidationError as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
+    except AttributeError as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(400, {"status": str(e)}).to_json()
+    except Exception as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
+
+
 @app.route(f'/{BOT_NAME}/config', methods=['GET'])
 def get_config():
     try:
-        logger.info('Entered GET /ur5e/config')
+        logger.info(f'Entered GET /{BOT_NAME}/config')
         velocity = urx_service.get_velocity()
         acceleration = urx_service.get_acceleration()
         wait_timeout_limit = urx_service.get_wait_timeout_limit()
@@ -181,7 +206,7 @@ def set_config():
     try:
         validate_json_structure(request)
         data = SetConfigRequestSchema().load(request.json)
-        logger.info('Entered POST /ur5e/config')
+        logger.info(f'Entered POST /{BOT_NAME}/config')
         velocity = data['velocity']
         acceleration = data['acceleration']
         wait_timeout_limit = data['wait_timeout_limit']
@@ -208,6 +233,51 @@ def set_config():
     except AttributeError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": str(e)}).to_json()
+    except Exception as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
+
+
+@app.route(f'/{BOT_NAME}/current-pose', methods=['GET'])
+def get_current_pose():
+    try:
+        logger.info(f'Entered GET /{BOT_NAME}/current-pose')
+        current_pose = urx_service.get_current_pose()
+        return ApiResponse(200,
+                           {
+                               "current_pose": current_pose
+                           }
+                           ).to_json()
+    except Exception as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
+
+
+@app.route(f'/{BOT_NAME}/current-joint-positions', methods=['GET'])
+def get_current_joint_positions():
+    try:
+        logger.info(f'Entered GET /{BOT_NAME}/current-joint-positions')
+        current_joint_positions = urx_service.get_current_joint_positions()
+        return ApiResponse(200,
+                           {
+                               "current_joint_positions": current_joint_positions
+                           }
+                           ).to_json()
+    except Exception as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
+
+
+@app.route(f'/{BOT_NAME}/current-tool-position', methods=['GET'])
+def get_current_tool_position():
+    try:
+        logger.info(f'Entered GET /{BOT_NAME}/current-tool-position')
+        current_tool_position = urx_service.get_current_tool_position()
+        return ApiResponse(200,
+                           {
+                               "current_tool_position": current_tool_position
+                           }
+                           ).to_json()
     except Exception as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(500, {"status": f"Error: {e}"}).to_json()

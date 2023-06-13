@@ -21,11 +21,11 @@ Their default values are on the `.env` file and are:
 - URX_PORT = 30002
 - BOT_NAME = ur5e
 
-___Note:__ There is also a `ENVIRONMENT` environment variable that is used to set the environment to `dev` or `bot`. The default value is `bot`. If the value is `dev` the server will not try to connect to the robot._
+___Note:__ There is also an `ENVIRONMENT` environment variable that is used to set the environment to `dev` or `bot`. The default value is `bot`. If the value is `dev` the server will not try to connect to the robot._
 
 ## Starting venv and server
 
-If windows:
+If running on Windows:
 
 ```bash
 venv/Scripts/activate.bat
@@ -88,15 +88,13 @@ curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/gripper/close
 `/<BOT_NAME>/movej`
 
 This endpoint is used to move the robot to a joint position.
-
 ```bash
-curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movej -d '{"coordinates": [0.0, 0.0, 0.0], angles": [0.0, 0.0, 0.0,] "acceleration": 0.0, "velocity": 0.0}'
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movej -d '{"joint_positions": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] "acceleration": 0.0, "velocity": 0.0}'
 ```
 Body:
 ```json
 {
-    "coordinates": [0.0, 0.0, 0.0],
-    "angles": [0.0, 0.0, 0.0],
+    "joint_positions": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     "acceleration": 0.0,
     "velocity": 0.0
 }
@@ -106,7 +104,6 @@ Body:
 `/<BOT_NAME>/movel`
 
 This endpoint is used to move the robot to a cartesian position.
-
 ```bash
 curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates": [0.0, 0.0, 0.0], angles": [0.0, 0.0, 0.0,], "acceleration": 0.0, "velocity": 0.0}'
 ```
@@ -120,11 +117,26 @@ Body:
 }
 ```
 
+### Translate
+`/<BOT_NAME>/translate`
+
+This endpoint is used to translate the robot tool to a cartesian position.
+```bash
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates": [0.0, 0.0, 0.0], "acceleration": 0.0, "velocity": 0.0}'
+```
+Body:
+```json
+{
+    "coordinates": [0.0, 0.0, 0.0],
+    "acceleration": 0.0,
+    "velocity": 0.0
+}
+```
+
 ### Config
 `/<BOT_NAME>/config`
 
 This endpoint is used to get or set the configuration of the robot.
-
 ```bash
 curl -X GET http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/config
 ```
@@ -139,5 +151,29 @@ Body:
     "wait_timeout_limit": 0.0,
     "program_running_timeout_limit": 0.0
 }
+```
+
+### Current pose
+`/<BOT_NAME>/current-pose`
+
+This endpoint is used to get the current pose of the robot.
+```bash
+curl -X GET http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/current-pose
+```
+
+### Current joint positions
+`/<BOT_NAME>/current-joint-positions`
+
+This endpoint is used to get the current joint positions of the robot.
+```bash
+curl -X GET http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/current-joint-positions
+```
+
+### Current tool position
+`/<BOT_NAME>/current-tool-position`
+
+This endpoint is used to get the current tool position of the robot.
+```bash
+curl -X GET http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/current-tool-position
 ```
 

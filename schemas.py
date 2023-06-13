@@ -5,9 +5,21 @@ class PartialGripperRequestSchema(Schema):
     amount = fields.Integer(required=True, validate=lambda x: 0 <= x <= 255)
 
 
-class MoveRequestSchema(Schema):
+class MoveJRequestSchema(Schema):
+    joint_positions = fields.List(fields.Float(), required=True, validate=lambda x: len(x) == 6)
+    acceleration = fields.Float(required=False)
+    velocity = fields.Float(required=False)
+
+
+class MoveLRequestSchema(Schema):
     coordinates = fields.List(fields.Float(), required=True, validate=lambda x: len(x) == 3)
     angles = fields.List(fields.Float(), required=True, validate=lambda x: len(x) == 3)
+    acceleration = fields.Float(required=False)
+    velocity = fields.Float(required=False)
+
+
+class TranslateRequestSchema(Schema):
+    coordinates = fields.List(fields.Float(), required=True, validate=lambda x: len(x) == 3)
     acceleration = fields.Float(required=False)
     velocity = fields.Float(required=False)
 
