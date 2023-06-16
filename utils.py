@@ -41,15 +41,28 @@ class ApiResponse:
         return json.dumps(self.__body), self.__status
 
 
-def parse_move_instruction(movement_type, coordinates, angles, acceleration, velocity):
-    vector = coordinates + angles
-    instruction = f"move{movement_type}(p{str(vector)}, {acceleration}, {velocity})\n"
+def parse_movel_instruction(coordinates_and_angles, acceleration, velocity, pose_object, relative):
+    if pose_object:
+        instruction = f"movel(p{str(coordinates_and_angles)}, {acceleration}, {velocity}"
+    else:
+        instruction = f"movel({str(coordinates_and_angles)}, {acceleration}, {velocity}"
+    if relative:
+        instruction = instruction + ", relative=True)\n"
+    else:
+        instruction = instruction + ")\n"
     encoded_instruction = instruction.encode("utf-8")
     return encoded_instruction
 
 
-def parse_translate_instruction(coordinates, acceleration, velocity):
-    instruction = f"translate(p{str(coordinates)}, {acceleration}, {velocity})\n"
+def parse_movej_instruction(joint_positions, acceleration, velocity, position, relative):
+    if position:
+        instruction = f"movej(p{str(joint_positions)}, {acceleration}, {velocity})\n"
+    else:
+        instruction = f"movej({str(joint_positions)}, {acceleration}, {velocity})\n"
+    if relative:
+        instruction = instruction + ", relative=True)\n"
+    else:
+        instruction = instruction + ")\n"
     encoded_instruction = instruction.encode("utf-8")
     return encoded_instruction
 

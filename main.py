@@ -9,7 +9,7 @@ from marshmallow import ValidationError
 from waitress import serve
 
 from schemas import PartialGripperRequestSchema, SetConfigRequestSchema, MoveJRequestSchema, \
-    MoveLRequestSchema, TranslateRequestSchema
+    MoveLRequestSchema, MoveLSRequestSchema, MoveRequestSchema
 from urx_service import DefaultUrxEService, MockUrxEService
 from utils import ApiResponse, FlaskLogger, validate_json_structure
 
@@ -122,8 +122,10 @@ def movej():
         joint_positions = data['joint_positions']
         acceleration = data.get('acceleration', None)
         velocity = data.get('velocity', None)
-        urx_service.movej(joint_positions, acceleration, velocity)
-        return ApiResponse(200, {"status": f"Moved successfully"}).to_json()
+        pose_object = data.get('pose_object', True)
+        relative = data.get('relative', False)
+        moved_to = urx_service.movej(joint_positions, acceleration, velocity, pose_object,relative)
+        return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
@@ -141,12 +143,13 @@ def movel():
         validate_json_structure(request)
         data = MoveLRequestSchema().load(request.json)
         logger.info(f'Entered POST /{BOT_NAME}/movel')
-        coordinates = data['coordinates']
-        angles = data['angles']
-        acceleration = data['acceleration']
-        velocity = data['velocity']
-        urx_service.movel(coordinates, angles, acceleration, velocity)
-        return ApiResponse(200, {"status": f"Moved successfully"}).to_json()
+        coordinates_and_angles = data['coordinates_and_angles']
+        acceleration = data.get('acceleration', None)
+        velocity = data.get('velocity', None)
+        pose_object = data.get('pose_object', True)
+        relative = data.get('relative', False)
+        moved_to = urx_service.movel(coordinates_and_angles, acceleration, velocity, pose_object, relative)
+        return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
@@ -158,17 +161,40 @@ def movel():
         return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
 
 
-@app.route(f'/{BOT_NAME}/translate', methods=['POST'])
-def translate():
+@app.route(f'/{BOT_NAME}/movels', methods=['POST'])
+def movels():
     try:
         validate_json_structure(request)
-        data = TranslateRequestSchema().load(request.json)
-        logger.info(f'Entered POST /{BOT_NAME}/translate')
-        coordinates = data['coordinates']
-        acceleration = data['acceleration']
-        velocity = data['velocity']
-        urx_service.translate(coordinates, acceleration, velocity)
-        return ApiResponse(200, {"status": f"Moved successfully"}).to_json()
+        data = MoveLSRequestSchema().load(request.json)
+        logger.info(f'Entered POST /{BOT_NAME}/movels')
+        coordinates_list = data['coordinates_list']
+        acceleration = data.get('acceleration', None)
+        velocity = data.get('velocity', None)
+        moved_to = urx_service.movels(coordinates_list, acceleration, velocity)
+        return ApiResponse(200, {"status": f"Moved successfully to last position: {moved_to}"}).to_json()
+    except ValidationError as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
+    except AttributeError as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(400, {"status": str(e)}).to_json()
+    except Exception as e:
+        logger.error(f'Error: {str(e)}')
+        return ApiResponse(500, {"status": f"Error: {e}"}).to_json()
+
+
+@app.route(f'/{BOT_NAME}/move', methods=["POST"])
+def move():
+    try:
+        validate_json_structure(request)
+        data = MoveRequestSchema().load(request.json)
+        logger.info(f'Entered POST /{BOT_NAME}/move')
+        direction = data["direction"]
+        distance = data["distance"]
+        acceleration = data.get("acceleration", None)
+        velocity = data.get("velocity", None)
+        moved_to = getattr(urx_service, direction)(distance, acceleration, velocity)
+        return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()

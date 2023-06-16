@@ -1,7 +1,13 @@
 # URX API Server 
 This server is a Python application that uses Flask as a web framework to create an API for controlling a UR5e robot. The API allows users to send commands to the robot and receive feedback. The server relies on the urx library, which provides a Python interface for the URScript language that the robot understands.
 
-## Installation and run setup.sh
+
+## Prerequisites
+- Python 3.8.0
+  - _**Note**: Python 3.8.0 is required because of the urx library. For proper operation it is not possible to use a different version of Python._
+- pip 20.2.4
+
+## Installation
 ```bash
 pip install -r requirements.txt
 python setup.py 
@@ -105,33 +111,37 @@ Body:
 
 This endpoint is used to move the robot to a cartesian position.
 ```bash
-curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates": [0.0, 0.0, 0.0], angles": [0.0, 0.0, 0.0,], "acceleration": 0.0, "velocity": 0.0}'
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates_and_angles": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,], "acceleration": 0.0, "velocity": 0.0}'
 ```
 Body:
 ```json
 {
-    "coordinates": [0.0, 0.0, 0.0],
-    "angles": [0.0, 0.0, 0.0],
+    "coordinates_and_angles": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     "acceleration": 0.0,
     "velocity": 0.0
 }
 ```
 
-### Translate
-`/<BOT_NAME>/translate`
+### Move
+`/<BOT_NAME>/move`
 
-This endpoint is used to translate the robot tool to a cartesian position.
+This endpoint is used to move the robot to a cartesian position.
+
 ```bash
-curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates": [0.0, 0.0, 0.0], "acceleration": 0.0, "velocity": 0.0}'
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/move -d '{"direction": "up", "distance": 0.0, "acceleration": 0.0, "velocity": 0.0}'
 ```
 Body:
 ```json
 {
-    "coordinates": [0.0, 0.0, 0.0],
+    "direction": "up",
+    "distance": 0.0,
     "acceleration": 0.0,
     "velocity": 0.0
 }
 ```
+_**Note**: The direction can be any of the following: `up`, `down`, `left`, `right`, `forward`, `backward`, `roll`, `pitch`, `yaw`_
+
+
 
 ### Config
 `/<BOT_NAME>/config`
