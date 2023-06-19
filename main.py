@@ -4,7 +4,6 @@ from logging.config import dictConfig
 
 from dotenv import load_dotenv
 from flask import Flask, request
-from flask_socketio import SocketIO
 from marshmallow import ValidationError
 from waitress import serve
 
@@ -33,13 +32,8 @@ dictConfig({
 })
 
 app = Flask(__name__)
-socketio = SocketIO(app)
 logger = FlaskLogger(app)
 BOT_NAME = os.getenv("BOT_NAME")
-if os.getenv("ENVIRONMENT") == "dev":
-    urx_service = MockUrxEService(logger=logger)
-else:
-    urx_service = DefaultUrxEService(logger=logger)
 
 
 @app.route('/health', methods=['GET'])
@@ -53,22 +47,6 @@ def health_check():
     if status != 0:
         return ApiResponse(500, {"status": f"Error: {status}"}).to_json()
     return ApiResponse(200, {"status": "ok"}).to_json()
-
-
-@socketio.on("connect")
-def handle_connect():
-    logger.info("Client connected")
-
-
-@socketio.on("disconnect")
-def handle_disconnect():
-    logger.info("Client disconnected")
-
-
-@socketio.on("get_position")
-def handle_get_position():
-    position = urx_service.get_position()
-    socketio.emit("position", position)
 
 
 @app.route(f'/{BOT_NAME}/gripper/partial', methods=['POST'])
@@ -124,7 +102,7 @@ def movej():
         velocity = data.get('velocity', None)
         pose_object = data.get('pose_object', True)
         relative = data.get('relative', False)
-        moved_to = urx_service.movej(joint_positions, acceleration, velocity, pose_object,relative)
+        moved_to = urx_service.movej(joint_positions, acceleration, velocity, pose_object, relative)
         return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
@@ -310,5 +288,9 @@ def get_current_tool_position():
 
 
 if __name__ == "__main__":
+    if os.getenv("ENVIRONMENT") == "dev":
+        urx_service = MockUrxEService()
+    else:
+        urx_service = DefaultUrxEService(logger=logger)
     logger.info(f"Flask server starting at {os.getenv('FLASK_HOST')}:{os.getenv('FLASK_PORT')}")
     serve(app, host=os.getenv("FLASK_HOST"), port=os.getenv("FLASK_PORT"))

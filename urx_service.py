@@ -1,17 +1,21 @@
 import os
+import socket
+import time
 import numpy as np
 import urx
-import time
-import socket
-from utils import Logger, get_acceleration_and_velocity_to_use, parse_movel_instruction, parse_movej_instruction
+import urx.urrobot
 from dotenv import load_dotenv
 from urx import robotiq_two_finger_gripper
-import urx.urrobot
-import json
+from utils import Logger, get_acceleration_and_velocity_to_use, parse_movel_instruction, parse_movej_instruction
 
 load_dotenv()
-HOST = os.getenv("URX_HOST")
-PORT = int(os.getenv("URX_PORT"))
+
+if os.getenv("PROXY") == "True":
+    HOST = os.getenv("PROXY_HOST")
+    PORT = int(os.getenv("PROXY_PORT"))
+else:
+    HOST = os.getenv("URX_HOST")
+    PORT = int(os.getenv("URX_PORT"))
 
 
 class UrxEService:
@@ -659,17 +663,6 @@ class DefaultUrxEService(UrxEService):
         self._logger.info(f"Getting program running timeout limit: {self._program_running_timeout_limit}")
         return self._program_running_timeout_limit
 
-    def get_position(self):
-        data = self._s.recv(1024)
-        if not data:
-            return
-        position = data.decode().split(",")[1:7]
-        position = data.decode().split(",")[1:7]
-        position_dict = {"x": position[0], "y": position[1], "z": position[2], "rx": position[3], "ry": position[4],
-                         "rz": position[5]}
-        position_json = json.dumps(position_dict)
-        return position_json
-
     def get_current_pose(self):
         """
         Get the current pose of the robot.
@@ -778,6 +771,10 @@ class DefaultUrxEService(UrxEService):
 
 
 class MockUrxEService(UrxEService):
+
+    def __init__(self):
+        super().__init__(logger=Logger())
+        self.__start_bot()
 
     def get_connection_status(self):
         return 0

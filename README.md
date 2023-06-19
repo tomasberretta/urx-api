@@ -13,12 +13,17 @@ pip install -r requirements.txt
 python setup.py 
 ```
 ## Environment variables
-There are 5 environment variables that need to be set:
+There are 10 environment variables that need to be set:
 - FLASK_HOST
 - FLASK_PORT
 - URX_HOST
 - URX_PORT
 - BOT_NAME
+- PROXY
+- PROXY_HOST
+- PROXY_PORT
+- WEBSOCKET_HOST
+- WEBSOCKET_PORT
 
 Their default values are on the `.env` file and are:
 - FLASK_HOST = 127.0.0.1
@@ -26,6 +31,11 @@ Their default values are on the `.env` file and are:
 - URX_HOST = 192.168.0.16
 - URX_PORT = 30002
 - BOT_NAME = ur5e
+- PROXY=True
+- PROXY_HOST=127.0.0.1
+- PROXY_PORT=9090
+- WEBSOCKET_HOST=127.0.0.1
+- WEBSOCKET_PORT=5000
 
 ___Note:__ There is also an `ENVIRONMENT` environment variable that is used to set the environment to `dev` or `bot`. The default value is `bot`. If the value is `dev` the server will not try to connect to the robot._
 
