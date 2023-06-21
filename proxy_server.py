@@ -13,13 +13,15 @@ PROXY_PORT = int(os.getenv("PROXY_PORT"))
 WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST")
 WEBSOCKET_PORT = os.getenv("WEBSOCKET_PORT")
 
-logger = Logger()
+logger = Logger("Proxy Server")
 
 # Define the IP and port of the http server and the robot
 http_ip = FLASK_HOST
 http_port = FLASK_PORT
 robot_ip = URX_HOST
 robot_port = URX_PORT
+
+logger.info(f"Starting proxy server at {PROXY_HOST}:{PROXY_PORT}")
 
 # Create a socket object for the proxy server
 proxy = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,11 +40,10 @@ logger.info(f"Connected to robot at {robot_ip}:{robot_port}")
 # Create a socket io client object
 sio = socketio.Client()
 
-
 # Define a function to handle socket io connections
 @sio.event
 def connect():
-    logger.info("Connected to the socket io server")
+    pass
 
 
 # Define a function to handle socket io messages
@@ -53,6 +54,8 @@ def message(data):
 
 # Connect to the socket io server
 sio.connect(f"http://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}")
+
+logger.info(f"Proxy server successfully started at {PROXY_HOST}:{PROXY_PORT}")
 
 
 # Create a function to forward data from one socket to another

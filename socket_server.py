@@ -14,7 +14,7 @@ app = Flask(__name__)
 # Create a SocketIO app object
 socketio = SocketIO(app)
 
-logger = Logger()
+logger = Logger("Socket Server")
 
 # Define a route for the index page
 @app.route('/')
@@ -34,8 +34,12 @@ def handle_connect():
 def handle_message(data):
     if data is not None:
         if type(data) is bytes:
-            logger.info(f"Message received: {data.decode('utf-8')}")
-            socketio.send('Message received: ' + data.decode('utf-8'))
+            try:
+                logger.info(f"Message received: {data.decode('utf-8')}")
+                socketio.send('Message received: ' + data.decode('utf-8'))
+            except ValueError:
+                logger.info(f"Message received: {data}")
+                socketio.send('Message received: ' + data)
         elif type(data) is str:
             logger.info(f"Message received: {data}")
             socketio.send('Message received: ' + data)

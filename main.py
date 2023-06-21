@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from logging.config import dictConfig
 
@@ -10,20 +11,20 @@ from waitress import serve
 from schemas import PartialGripperRequestSchema, SetConfigRequestSchema, MoveJRequestSchema, \
     MoveLRequestSchema, MoveLSRequestSchema, MoveRequestSchema
 from urx_service import DefaultUrxEService, MockUrxEService
-from utils import ApiResponse, FlaskLogger, validate_json_structure
+from utils import ApiResponse, FlaskLogger, validate_json_structure, ColorFormatter
 
 load_dotenv()
 
-# This configuration should only be used in development
+# Define a dictConfig with the color formatter
 dictConfig({
     'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    'formatters': {'color': {
+        '()': ColorFormatter
     }},
     'handlers': {'wsgi': {
         'class': 'logging.StreamHandler',
         'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
+        'formatter': 'color'
     }},
     'root': {
         'level': 'INFO',
@@ -31,8 +32,9 @@ dictConfig({
     }
 })
 
-app = Flask(__name__)
-logger = FlaskLogger(app)
+app = Flask("Flask Server")
+logger = FlaskLogger(app, "Flask Server")
+
 BOT_NAME = os.getenv("BOT_NAME")
 
 
@@ -192,12 +194,16 @@ def get_config():
         acceleration = urx_service.get_acceleration()
         wait_timeout_limit = urx_service.get_wait_timeout_limit()
         program_running_timeout_limit = urx_service.get_program_running_timeout_limit()
+        amount_movement = urx_service.get_amount_movement()
+        amount_rotation = urx_service.get_amount_rotation()
         return ApiResponse(200,
                            {
                                "velocity": velocity,
                                "acceleration": acceleration,
                                "wait_timeout_limit": wait_timeout_limit,
-                               "program_running_timeout_limit": program_running_timeout_limit
+                               "program_running_timeout_limit": program_running_timeout_limit,
+                               "amount_movement": amount_movement,
+                               "amount_rotation": amount_rotation
                            }
                            ).to_json()
     except Exception as e:
@@ -211,26 +217,46 @@ def set_config():
         validate_json_structure(request)
         data = SetConfigRequestSchema().load(request.json)
         logger.info(f'Entered POST /{BOT_NAME}/config')
-        velocity = data['velocity']
-        acceleration = data['acceleration']
-        wait_timeout_limit = data['wait_timeout_limit']
-        program_running_timeout_limit = data['program_running_timeout_limit']
-        old_velocity = urx_service.set_velocity(velocity)
-        old_acceleration = urx_service.set_acceleration(acceleration)
-        old_wait_timeout_limit = urx_service.set_wait_timeout_limit(wait_timeout_limit)
-        old_program_running_timeout_limit = urx_service.set_program_running_timeout_limit(program_running_timeout_limit)
-        return ApiResponse(200,
-                           {
-                               "old_velocity": old_velocity,
-                               "old_acceleration": old_acceleration,
-                               "old_wait_timeout_limit": old_wait_timeout_limit,
-                               "old_program_running_timeout_limit": old_program_running_timeout_limit,
-                               "new_velocity": velocity,
-                               "new_acceleration": acceleration,
-                               "new_wait_timeout_limit": wait_timeout_limit,
-                               "new_program_running_timeout_limit": program_running_timeout_limit
-                           }
-                           ).to_json()
+        velocity = data.get('velocity', None)
+        acceleration = data.get('acceleration', None)
+        wait_timeout_limit = data.get('wait_timeout_limit', None)
+        program_running_timeout_limit = data.get('program_running_timeout_limit', None)
+        amount_movement = data.get('amount_movement', None)
+        amount_rotation = data.get('amount_rotation', None)
+        response = {}
+
+        if velocity is not None:
+            old_velocity = urx_service.set_velocity(velocity)
+            response["old_velocity"] = old_velocity
+            response["new_velocity"] = velocity
+
+        if acceleration is not None:
+            old_acceleration = urx_service.set_acceleration(acceleration)
+            response["old_acceleration"] = old_acceleration
+            response["new_acceleration"] = acceleration
+
+        if wait_timeout_limit is not None:
+            old_wait_timeout_limit = urx_service.set_wait_timeout_limit(wait_timeout_limit)
+            response["old_wait_timeout_limit"] = old_wait_timeout_limit
+            response["new_wait_timeout_limit"] = wait_timeout_limit
+
+        if program_running_timeout_limit is not None:
+            old_program_running_timeout_limit = urx_service.set_program_running_timeout_limit(
+                program_running_timeout_limit)
+            response["old_program_running_timeout_limit"] = old_program_running_timeout_limit
+            response["new_program_running_timeout_limit"] = program_running_timeout_limit
+
+        if amount_movement is not None:
+            old_amount_movement = urx_service.set_amount_movement(amount_movement)
+            response["old_amount_movement"] = old_amount_movement
+            response["new_amount_movement"] = amount_movement
+
+        if amount_rotation is not None:
+            old_amount_rotation = urx_service.set_amount_rotation(amount_rotation)
+            response["old_amount_rotation"] = old_amount_rotation
+            response["new_amount_rotation"] = amount_rotation
+
+        return ApiResponse(200, response).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()

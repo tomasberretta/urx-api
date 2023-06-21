@@ -1,35 +1,82 @@
 import json
+import logging
 
 
-class Logger:
-    def info(self, message):
-        print(message)
+class ColorFormatter(logging.Formatter):
+    # Define color codes for different log levels
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    green = "\x1b[32;20m"  # Add green
+    reset = "\x1b[0m"
 
-    def error(self, message):
-        print(message)
+    # Define the format for each log level
+    FORMATS = {
+        logging.DEBUG: grey + "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)" + reset,
+        logging.INFO: green + "%(asctime)s - %(name)s - %(levelname)s - %(message)s " + reset,
+        logging.WARNING: yellow + "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)" + reset,
+        logging.ERROR: red + "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)" + reset,
+        logging.CRITICAL: bold_red + "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)" + reset
+    }
 
-    def warning(self, message):
-        print(message)
+    # Override the format method to use the custom format
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
 
-    def debug(self, message):
-        print(message)
+
+class Logger(logging.Logger):
+    def __init__(self, name):
+        # Call the parent constructor
+        super().__init__(name)
+
+        # Create a color formatter
+        color_formatter = ColorFormatter()
+
+        # Create a stream handler for the console
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(color_formatter)
+
+        # Add the handler to the logger
+        self.addHandler(console_handler)
+
+    def info(self, message, **kwargs):
+        # Use the logging method instead of print
+        super().info(msg=message)
+
+    def error(self, message, **kwargs):
+        # Use the logging method instead of print
+        super().error(msg=message)
+
+    def warning(self, message, **kwargs):
+        # Use the logging method instead of print
+        super().warning(msg=message)
+
+    def debug(self, message, **kwargs):
+        # Use the logging method instead of print
+        super().debug(message)
 
 
 class FlaskLogger(Logger):
-    def __init__(self, app):
+    def __init__(self, app, name):
+        self.name = name
+        super().__init__(name)
         self._app = app
 
-    def info(self, message):
+    def info(self, message, **kwargs):
         self._app.logger.info(message)
 
-    def error(self, message):
+    def error(self, message, **kwargs):
         self._app.logger.error(message)
 
-    def warning(self, message):
+    def warning(self, message, **kwargs):
         self._app.logger.warning(message)
 
-    def debug(self, message):
+    def debug(self, message, **kwargs):
         self._app.logger.debug(message)
+
 
 
 class ApiResponse:

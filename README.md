@@ -1,11 +1,16 @@
 # URX API Server 
 This server is a Python application that uses Flask as a web framework to create an API for controlling a UR5e robot. The API allows users to send commands to the robot and receive feedback. The server relies on the urx library, which provides a Python interface for the URScript language that the robot understands.
 
+Additionally, the server has a functionality of passively observing the data sent between the robot and the REST server with a Proxy and another Socket Server. This works as follows: The REST server connects to the Proxy instead of the robot directly, and with every communication that is sent between them, the Proxy sends a message to the Socket Server to allow real-time observability. This way, users can monitor the robot’s status and actions without interfering with its operation.
 
 ## Prerequisites
 - Python 3.8.0
   - _**Note**: Python 3.8.0 is required because of the urx library. For proper operation it is not possible to use a different version of Python._
 - pip 20.2.4
+- If going to use Proxy:
+  - For Windows: Ncap 1.75 (https://npcap.com/#download)
+  - For Linux: libpcap-dev (`sudo apt-get install libpcap-dev`)
+  - For Mac: libpcap (`brew install libpcap`)
 
 ## Installation
 ```bash
@@ -31,7 +36,7 @@ Their default values are on the `.env` file and are:
 - URX_HOST = 192.168.0.16
 - URX_PORT = 30002
 - BOT_NAME = ur5e
-- PROXY=True
+- PROXY=False
 - PROXY_HOST=127.0.0.1
 - PROXY_PORT=9090
 - WEBSOCKET_HOST=127.0.0.1
@@ -45,13 +50,13 @@ If running on Windows:
 
 ```bash
 venv/Scripts/activate.bat
-python main.py
+python start.py
 ```
 
 Otherwise:
 ```bash
 source venv/bin/activate
-python main.py
+python start.py
 ```
 
 ## API
@@ -105,14 +110,16 @@ curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/gripper/close
 
 This endpoint is used to move the robot to a joint position.
 ```bash
-curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movej -d '{"joint_positions": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] "acceleration": 0.0, "velocity": 0.0}'
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movej -d '{"joint_positions": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] "acceleration": 0.0, "velocity": 0.0, "pose_object" : true, "relative": false}'
 ```
 Body:
 ```json
 {
     "joint_positions": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     "acceleration": 0.0,
-    "velocity": 0.0
+    "velocity": 0.0,
+    "pose_object" : true,
+    "relative": false
 }
 ```
 
@@ -121,12 +128,30 @@ Body:
 
 This endpoint is used to move the robot to a cartesian position.
 ```bash
-curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates_and_angles": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,], "acceleration": 0.0, "velocity": 0.0}'
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movel -d '{"coordinates_and_angles": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,], "acceleration": 0.0, "velocity": 0.0, "pose_object" : true, "relative": false}'
 ```
 Body:
 ```json
 {
     "coordinates_and_angles": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "acceleration": 0.0,
+    "velocity": 0.0,
+    "pose_object" : true,
+    "relative": false
+}
+```
+
+### Movels
+`/<BOT_NAME>/movels`
+
+This endpoint is used to move the robot to a cartesian position for a series of coordinates.
+```bash
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/movels -d '{"coordinates_list": [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], "acceleration": 0.0, "velocity": 0.0}'
+```
+Body:
+```json
+{
+    "coordinates_list": [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
     "acceleration": 0.0,
     "velocity": 0.0
 }
@@ -161,7 +186,7 @@ This endpoint is used to get or set the configuration of the robot.
 curl -X GET http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/config
 ```
 ```bash
-curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/config -d '{"velocity": 0.0, "acceleration": 0.0, "wait_timeout_limit": 0.0, "program_running_timeout_limit": 0.0}'
+curl -X POST http://<FLASK_HOST>:<FLASK_PORT>/<BOT_NAME>/config -d '{"velocity": 0.0, "acceleration": 0.0, "wait_timeout_limit": 0.0, "program_running_timeout_limit": 0., "amount_movement": 0.0, "amount_rotation": 0.0}'
 ```
 Body:
 ```json
@@ -169,7 +194,9 @@ Body:
     "velocity": 0.0,
     "acceleration": 0.0,
     "wait_timeout_limit": 0.0,
-    "program_running_timeout_limit": 0.0
+    "program_running_timeout_limit": 0.0,
+    "amount_movement": 0.0,
+    "amount_rotation": 0.0
 }
 ```
 
