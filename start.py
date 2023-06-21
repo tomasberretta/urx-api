@@ -2,7 +2,6 @@ import os
 import subprocess
 import platform
 from dotenv import load_dotenv
-from subprocess import CREATE_NEW_CONSOLE
 
 load_dotenv()
 
@@ -65,6 +64,7 @@ for run in to_run:
     # Check the system and use the corresponding terminal command
     if system == "Windows":
         # Use cmd to open a new console window and execute the cmd string
+        from subprocess import CREATE_NEW_CONSOLE
         subprocess.Popen(["cmd", "/c", cmd], creationflags=CREATE_NEW_CONSOLE)
 
         # Alternatively, you can use start to open a new console window and execute the cmd string
