@@ -1,13 +1,11 @@
 import json
-import logging
 import os
 from logging.config import dictConfig
-
 from dotenv import load_dotenv
 from flask import Flask, request
 from marshmallow import ValidationError
 from waitress import serve
-
+from flask_cors import CORS, cross_origin
 from schemas import PartialGripperRequestSchema, SetConfigRequestSchema, MoveJRequestSchema, \
     MoveLRequestSchema, MoveLSRequestSchema, MoveRequestSchema
 from urx_service import DefaultUrxEService, MockUrxEService
@@ -36,6 +34,15 @@ app = Flask("Flask Server")
 logger = FlaskLogger(app, "Flask Server")
 
 BOT_NAME = os.getenv("BOT_NAME")
+
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+
+@app.route("/")
+@cross_origin()
+def root_path():
+    return json.loads('{"status": "ok"}'), 200
 
 
 @app.route('/health', methods=['GET'])
