@@ -85,7 +85,7 @@ for run in to_run:
 
     elif system == "Darwin":
         # Use osascript to open a new terminal window and execute the cmd string
-        subprocess.Popen(["osascript", "-e", f'tell app "Terminal" to do script "{cmd}"'])
+        subprocess.Popen(["osascript", "-e", f'tell application "Terminal" to do script "{cmd}"'])
 
         # Alternatively, you can use open to open a new terminal window and execute the cmd string
         # subprocess.Popen(["open", "-a", "Terminal.app", "--args", "-c", cmd])
