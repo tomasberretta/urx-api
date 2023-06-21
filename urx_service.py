@@ -1,27 +1,33 @@
 import os
+import socket
+import time
 import numpy as np
 import urx
-import time
-import socket
-from utils import Logger, get_acceleration_and_velocity_to_use, parse_movel_instruction, parse_movej_instruction
+import urx.urrobot
 from dotenv import load_dotenv
 from urx import robotiq_two_finger_gripper
-import urx.urrobot
-import json
+from utils import Logger, get_acceleration_and_velocity_to_use, parse_movel_instruction, parse_movej_instruction
 
 load_dotenv()
-HOST = os.getenv("URX_HOST")
-PORT = int(os.getenv("URX_PORT"))
+
+if os.getenv("PROXY") == "True":
+    HOST = os.getenv("PROXY_HOST")
+    PORT = int(os.getenv("PROXY_PORT"))
+else:
+    HOST = os.getenv("URX_HOST")
+    PORT = int(os.getenv("URX_PORT"))
 
 
 class UrxEService:
 
     def __init__(self, logger: Logger):
-        self._logger = Logger() if logger is None else logger
+        self._logger = Logger(__name__) if logger is None else logger
         self._velocity = 0.05
         self._acceleration = 0.05
         self._wait_timeout_limit = 5
         self._program_running_timeout_limit = 60
+        self._amount_movement = 0.05
+        self._amount_rotation = np.pi / 32
 
     def get_connection_status(self):
         pass
@@ -47,34 +53,34 @@ class UrxEService:
     def __move(self, direction, distance, acceleration, velocity):
         pass
 
-    def up(self, acceleration, velocity, z=0.05):
+    def up(self, z, acceleration, velocity):
         pass
 
-    def down(self, acceleration, velocity, z=0.05):
+    def down(self, z, acceleration, velocity):
         pass
 
-    def left(self, acceleration, velocity, x=0.05):
+    def left(self, x, acceleration, velocity):
         pass
 
-    def right(self, acceleration, velocity, x=0.05):
+    def right(self, x, acceleration, velocity):
         pass
 
-    def forward(self, acceleration, velocity, y=0.05):
+    def forward(self, y, acceleration, velocity):
         pass
 
-    def backward(self, acceleration, velocity, y=0.05):
+    def backward(self, y, acceleration, velocity):
         pass
 
     def __rotate(self, axis, angle, acceleration, velocity):
         pass
 
-    def roll(self, acceleration, velocity, rx=np.pi / 16):
+    def roll(self, rx, acceleration, velocity):
         pass
 
-    def pitch(self, acceleration, velocity, ry=np.pi / 16):
+    def pitch(self, ry, acceleration, velocity):
         pass
 
-    def yaw(self, acceleration, velocity, rz=np.pi / 16):
+    def yaw(self, rz, acceleration, velocity):
         pass
 
     def set_velocity(self, velocity):
@@ -222,9 +228,9 @@ class DefaultUrxEService(UrxEService):
             coordinates_and_angles : list
                 The list of coordinates and angles to move to in meters and radians.
             acceleration : float
-                The acceleration to use for the movement in m/s^2 or rad/s^2.
+                The acceleration to use for the movement in rad/s^2.
             velocity : float
-                The velocity to use for the movement in m/s or rad/s.
+                The velocity to use for the movement in rad/s.
             pose_object : bool, optional
                 A flag indicating whether the coordinates and angles are a pose object or a list. Default is True.
             relative : bool, optional
@@ -256,11 +262,11 @@ class DefaultUrxEService(UrxEService):
             Parameters
             ----------
             coordinates_list : list
-                The list of coordinates to move to in meters. Each element is a list of 6 values (x, y, z, rx, ry, rz).
+                The list of coordinates to move to in rads. Each element is a list of 6 values (x, y, z, rx, ry, rz).
             acceleration : float
-                The acceleration to use for the movement in m/s^2 or rad/s^2.
+                The acceleration to use for the movement in rad/s^2.
             velocity : float
-                The velocity to use for the movement in m/s or rad/s.
+                The velocity to use for the movement in rad/s.
 
             Returns
             -------
@@ -289,9 +295,9 @@ class DefaultUrxEService(UrxEService):
         distance : float
             The distance to move in meters or radians.
         acceleration : float
-            The acceleration to use for the movement in m/s^2 or rad/s^2.
+            The acceleration to use for the movement in rad/s^2.
         velocity : float
-            The velocity to use for the movement in m/s or rad/s.
+            The velocity to use for the movement in rad/s.
 
         Returns
         -------
@@ -304,18 +310,18 @@ class DefaultUrxEService(UrxEService):
         p[direction] += distance
         return self.movel(p, acceleration, velocity)
 
-    def up(self, acceleration, velocity, z=0.05):
+    def up(self, z, acceleration, velocity):
         """
         Move up in csys z.
 
         Parameters
         ----------
         acceleration : float, optional
-            The acceleration to use for the movement in m/s^2. Default is self._acceleration.
+            The acceleration to use for the movement in rads/s^2. Default is self._acceleration.
         velocity : float, optional
-            The velocity to use for the movement in m/s. Default is self._velocity.
+            The velocity to use for the movement in rads/s. Default is self._velocity.
         z : float, optional
-            The distance to move up in meters. Default is 0.05.
+            The distance to move up in rads. Default is self._amount_movement.
 
         Returns
         -------
@@ -324,20 +330,21 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        z = self._amount_movement if z is None else z
         return self.__move(2, z, acceleration, velocity)
 
-    def down(self, acceleration, velocity, z=0.05):
+    def down(self, z, acceleration, velocity):
         """
         Move down in csys z.
 
         Parameters
         ----------
         acceleration : float, optional
-            The acceleration to use for the movement in m/s^2. Default is self._acceleration.
+            The acceleration to use for the movement in rads/s^2. Default is self._acceleration.
         velocity : float, optional
-            The velocity to use for the movement in m/s. Default is self._velocity.
+            The velocity to use for the movement in rads/s. Default is self._velocity.
         z : float, optional
-            The distance to move down in meters. Default is 0.05.
+            The distance to move down in rads. Default is self._amount_movement.
 
         Returns
         -------
@@ -346,20 +353,21 @@ class DefaultUrxEService(UrxEService):
          """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        z = self._amount_movement if z is None else z
         return self.__move(2, -z, acceleration, velocity)
 
-    def left(self, acceleration, velocity, x=0.05):
+    def left(self, x, acceleration, velocity):
         """
         Move left in csys x.
 
         Parameters
         ----------
         acceleration : float, optional
-            The acceleration to use for the movement in m/s^2. Default is self._acceleration.
+            The acceleration to use for the movement in rads/s^2. Default is self._acceleration.
         velocity : float, optional
-            The velocity to use for the movement in m/s. Default is self._velocity.
+            The velocity to use for the movement in rads/s. Default is self._velocity.
         x : float, optional
-            The distance to move left in meters. Default is 0.05.
+            The distance to move left in rads. Default is self._amount_movement.
 
         Returns
         -------
@@ -368,20 +376,21 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        x = self._amount_movement if x is None else x
         return self.__move(0, -x, acceleration, velocity)
 
-    def right(self, acceleration, velocity, x=0.05):
+    def right(self, x, acceleration, velocity):
         """
         Move right in csys x.
 
         Parameters
         ----------
         acceleration : float, optional
-            The acceleration to use for the movement in m/s^2. Default is self._acceleration.
+            The acceleration to use for the movement in rads/s^2. Default is self._acceleration.
         velocity : float, optional
-            The velocity to use for the movement in m/s. Default is self._velocity.
+            The velocity to use for the movement in rads/s. Default is self._velocity.
         x : float, optional
-            The distance to move right in meters. Default is 0.05.
+            The distance to move right in rads. Default is self._amount_movement.
 
         Returns
         -------
@@ -390,20 +399,21 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        x = self._amount_movement if x is None else x
         return self.__move(0, x, acceleration, velocity)
 
-    def forward(self, acceleration, velocity, y=0.05):
+    def forward(self, y, acceleration, velocity):
         """
         Move forward in csys y.
 
         Parameters
         ----------
         acceleration : float, optional
-            The acceleration to use for the movement in m/s^2. Default is self._acceleration.
+            The acceleration to use for the movement in rads/s^2. Default is self._acceleration.
         velocity : float, optional
-            The velocity to use for the movement in m/s. Default is self._velocity.
+            The velocity to use for the movement in rads/s. Default is self._velocity.
         y : float, optional
-            The distance to move forward in meters. Default is 0.05.
+            The distance to move forward in rads. Default is self._amount_movement.
 
         Returns
         -------
@@ -412,26 +422,28 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        y = self._amount_movement if y is None else y
         return self.__move(1, y, acceleration, velocity)
 
-    def backward(self, acceleration, velocity, y=0.05):
+    def backward(self, y, acceleration, velocity):
         """
         Move backward in csys y.
 
         Parameters
         ----------
         acceleration : float, optional
-            The acceleration to use for the movement in m/s^2. Default is self._acceleration.
+            The acceleration to use for the movement in rads/s^2. Default is self._acceleration.
         velocity : float, optional
-            The velocity to use for the movement in m/s. Default is self._velocity.
+            The velocity to use for the movement in rads/s. Default is self._velocity.
         y : float, optional
-            The distance to move backward in meters. Default is 0.05.
+            The distance to move backward in rads. Default is self._amount_movement.
 
         Returns
         -------
         list
             The new pose vector after the movement.
         """
+        y = self._amount_movement if y is None else y
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
         return self.__move(1, -y, acceleration, velocity)
@@ -463,7 +475,7 @@ class DefaultUrxEService(UrxEService):
         p[axis] += angle
         return self.movel(p, acceleration, velocity)
 
-    def roll(self, acceleration, velocity, rx=np.pi / 16):
+    def roll(self, rx, acceleration, velocity):
         """
         Rotate around csys x axis.
 
@@ -474,7 +486,7 @@ class DefaultUrxEService(UrxEService):
         velocity : float, optional
             The velocity to use for the rotation in rad/s. Default is self._velocity.
         rx : float, optional
-            The angle to rotate around x axis in radians. Default is pi/16.
+            The angle to rotate around x axis in radians. Default is self._amount_rotation.
 
         Returns
         -------
@@ -483,9 +495,10 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        rx = self._amount_rotation if rx is None else rx
         return self.__rotate(3, rx, acceleration, velocity)
 
-    def pitch(self, acceleration, velocity, ry=np.pi / 16):
+    def pitch(self, ry, acceleration, velocity):
         """
         Rotate around csys y axis.
 
@@ -496,7 +509,7 @@ class DefaultUrxEService(UrxEService):
         velocity : float, optional
             The velocity to use for the rotation in rad/s. Default is self._velocity.
         ry : float, optional
-            The angle to rotate around y axis in radians. Default is pi/16.
+            The angle to rotate around y axis in radians. Default is self._amount_rotation.
 
         Returns
         -------
@@ -505,9 +518,10 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        ry = self._amount_rotation if ry is None else ry
         return self.__rotate(4, ry, acceleration, velocity)
 
-    def yaw(self, acceleration, velocity, rz=np.pi / 16):
+    def yaw(self, rz, acceleration, velocity):
         """
         Rotate around csys z axis.
 
@@ -518,7 +532,7 @@ class DefaultUrxEService(UrxEService):
         velocity : float, optional
             The velocity to use for the rotation in rad/s. Default is self._velocity.
         rz : float, optional
-            The angle to rotate around z axis in radians. Default is pi/16.
+            The angle to rotate around z axis in radians. Default is self._amount_rotation.
 
         Returns
         -------
@@ -527,6 +541,7 @@ class DefaultUrxEService(UrxEService):
         """
         acceleration, velocity = get_acceleration_and_velocity_to_use(acceleration, velocity, self._acceleration,
                                                                       self._velocity)
+        rz = self._amount_rotation if rz is None else rz
         return self.__rotate(5, rz, acceleration, velocity)
 
     def set_velocity(self, velocity):
@@ -536,7 +551,7 @@ class DefaultUrxEService(UrxEService):
             Parameters
             ----------
             velocity : float
-                The velocity to set in m/s or rad/s.
+                The velocity to set in rad/s.
 
             Returns
             -------
@@ -556,7 +571,7 @@ class DefaultUrxEService(UrxEService):
             Parameters
             ----------
             acceleration : float
-                The acceleration to set in m/s^2 or rad/s^2.
+                The acceleration to set in rad/s^2.
 
             Returns
             -------
@@ -611,6 +626,46 @@ class DefaultUrxEService(UrxEService):
             f"Set program running timeout limit from {old_program_running_timeout_limit} to {program_running_timeout_limit}")
         return old_program_running_timeout_limit
 
+    def set_amount_movement(self, amount_movement):
+        """
+            Set the amount movement for the robot movements.
+
+            Parameters
+            ----------
+            amount_movement : float
+                The amount movement to set in rads.
+
+            Returns
+            -------
+            float
+                The old amount_movement before setting the new one.
+        """
+        old_amount_movement = self._amount_movement
+        self._logger.info(f"Setting acceleration from {old_amount_movement} to {amount_movement}")
+        self._amount_movement = amount_movement
+        self._logger.info(f"Set acceleration from {old_amount_movement} to {amount_movement}")
+        return old_amount_movement
+
+    def set_amount_rotation(self, amount_rotation):
+        """
+            Set the amount rotation for the robot movements.
+
+            Parameters
+            ----------
+            amount_rotation : float
+                The amount rotation to set in rads.
+
+            Returns
+            -------
+            float
+                The old amount_rotation before setting the new one.
+        """
+        old_amount_rotation = self._amount_rotation
+        self._logger.info(f"Setting acceleration from {old_amount_rotation} to {amount_rotation}")
+        self._amount_rotation = amount_rotation
+        self._logger.info(f"Set acceleration from {old_amount_rotation} to {amount_rotation}")
+        return old_amount_rotation
+
     def get_velocity(self):
         """
             Get the velocity for the robot movements.
@@ -618,7 +673,7 @@ class DefaultUrxEService(UrxEService):
             Returns
             -------
             float
-                The velocity in m/s or rad/s.
+                The velocity in rad/s.
         """
         self._logger.info(f"Getting velocity: {self._velocity}")
         return self._velocity
@@ -630,7 +685,7 @@ class DefaultUrxEService(UrxEService):
             Returns
             -------
             float
-                The acceleration in m/s^2 or rad/s^2.
+                The acceleration in rad/s^2.
         """
         self._logger.info(f"Getting acceleration: {self._acceleration}")
         return self._acceleration
@@ -659,16 +714,29 @@ class DefaultUrxEService(UrxEService):
         self._logger.info(f"Getting program running timeout limit: {self._program_running_timeout_limit}")
         return self._program_running_timeout_limit
 
-    def get_position(self):
-        data = self._s.recv(1024)
-        if not data:
-            return
-        position = data.decode().split(",")[1:7]
-        position = data.decode().split(",")[1:7]
-        position_dict = {"x": position[0], "y": position[1], "z": position[2], "rx": position[3], "ry": position[4],
-                         "rz": position[5]}
-        position_json = json.dumps(position_dict)
-        return position_json
+    def get_amount_movement(self):
+        """
+            Get the amount of movement for the robot movements.
+
+            Returns
+            -------
+            float
+                The amount of movement in rads.
+        """
+        self._logger.info(f"Getting amount movement: {self._amount_movement}")
+        return self._amount_movement
+
+    def get_amount_rotation(self):
+        """
+            Get the amount of rotation for the robot movements.
+
+            Returns
+            -------
+            float
+                The amount of rotation in rads.
+        """
+        self._logger.info(f"Getting rotation movement: {self._amount_rotation}")
+        return self._amount_rotation
 
     def get_current_pose(self):
         """
@@ -717,6 +785,7 @@ class DefaultUrxEService(UrxEService):
         """
            Start the robot and the gripper and connect to the socket.
        """
+        self._logger.info(f'Establishing IP to: {HOST}')
         self._rob = urx.Robot(HOST)
         self._robotiq_gripper = robotiq_two_finger_gripper.Robotiq_Two_Finger_Gripper(self._rob)
         self._logger.info(f'Established IP to: {HOST}')
@@ -778,6 +847,10 @@ class DefaultUrxEService(UrxEService):
 
 
 class MockUrxEService(UrxEService):
+
+    def __init__(self):
+        super().__init__(logger=Logger(__name__))
+        self.__start_bot()
 
     def get_connection_status(self):
         return 0
