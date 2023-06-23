@@ -851,6 +851,7 @@ class MockUrxEService(UrxEService):
     def __init__(self):
         super().__init__(logger=Logger(__name__))
         self.__start_bot()
+        self._current_position = [0, 0, 0, 0, 0, 0]
 
     def get_connection_status(self):
         return 0
@@ -882,38 +883,44 @@ class MockUrxEService(UrxEService):
     def __move(self, direction, distance, acceleration, velocity):
         self._logger.info(
             f"Moving {direction} by {distance}, with acceleration: {self._acceleration if acceleration is None else acceleration} and velocity: {self._velocity if velocity is None else velocity}")
-        return [0, 0, 0, 0, 0, 0]
+        temp = self.get_current_pose()
+        temp[direction] += distance
+        self._current_position = temp
+        return self.get_current_pose()
 
-    def up(self, acceleration, velocity, z=0.05):
+    def up(self, z, acceleration, velocity):
         return self.__move(2, z, acceleration, velocity)
 
-    def down(self, acceleration, velocity, z=0.05):
+    def down(self, z, acceleration, velocity):
         return self.__move(2, -z, acceleration, velocity)
 
-    def left(self, acceleration, velocity, x=0.05):
+    def left(self, x, acceleration, velocity):
         return self.__move(0, -x, acceleration, velocity)
 
-    def right(self, acceleration, velocity, x=0.05):
+    def right(self, x, acceleration, velocity):
         return self.__move(0, x, acceleration, velocity)
 
-    def forward(self, acceleration, velocity, y=0.05):
+    def forward(self, y, acceleration, velocity):
         return self.__move(1, y, acceleration, velocity)
 
-    def backward(self, acceleration, velocity, y=0.05):
+    def backward(self, y, acceleration, velocity):
         return self.__move(1, -y, acceleration, velocity)
 
     def __rotate(self, axis, angle, acceleration, velocity):
         self._logger.info(
             f"Rotating around {axis} by {angle}, with acceleration: {self._acceleration if acceleration is None else acceleration} and velocity: {self._velocity if velocity is None else velocity}")
-        return [0, 0, 0, 0, 0, 0]
+        temp = self.get_current_pose()
+        temp[axis] += angle
+        self._current_position = temp
+        return self.get_current_pose()
 
-    def roll(self, acceleration, velocity, rx=np.pi / 16):
+    def roll(self, rx, acceleration, velocity):
         return self.__rotate(0, rx, acceleration, velocity)
 
-    def pitch(self, acceleration, velocity, ry=np.pi / 16):
+    def pitch(self, ry, acceleration, velocity):
         return self.__rotate(1, ry, acceleration, velocity)
 
-    def yaw(self, acceleration, velocity, rz=np.pi / 16):
+    def yaw(self, rz, acceleration, velocity):
         return self.__rotate(2, rz, acceleration, velocity)
 
     def set_velocity(self, velocity):
@@ -953,7 +960,7 @@ class MockUrxEService(UrxEService):
         return self._program_running_timeout_limit
 
     def get_current_pose(self):
-        return [0, 0, 0, 0, 0, 0]
+        return self._current_position
 
     def get_current_joint_positions(self):
         return [0, 0, 0, 0, 0, 0]

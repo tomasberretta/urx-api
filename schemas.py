@@ -6,7 +6,7 @@ class PartialGripperRequestSchema(Schema):
 
 class MoveRequestSchema(Schema):
     direction = fields.Str(required=True, validate=validate.OneOf(["up", "down", "left", "right", "forward", "backward", "roll", "pitch", "yaw"]))
-    distance = fields.Float(required=True)
+    distance = fields.Float(required=False)
     acceleration = fields.Float(required=False, missing=None, validate=lambda x: x >= 0)
     velocity = fields.Float(required=False, missing=None, validate=lambda x: x >= 0)
 

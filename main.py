@@ -13,7 +13,6 @@ from utils import ApiResponse, FlaskLogger, validate_json_structure, ColorFormat
 
 load_dotenv()
 
-# Define a dictConfig with the color formatter
 dictConfig({
     'version': 1,
     'formatters': {'color': {
@@ -38,6 +37,11 @@ BOT_NAME = os.getenv("BOT_NAME")
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+if os.getenv("ENVIRONMENT") == "dev":
+    urx_service = MockUrxEService()
+else:
+    urx_service = DefaultUrxEService(logger=logger)
+
 
 @app.route("/")
 @cross_origin()
@@ -46,11 +50,13 @@ def root_path():
 
 
 @app.route('/health', methods=['GET'])
+@cross_origin()
 def health():
     return json.loads('{"status": "ok"}'), 200
 
 
 @app.route(f'/{BOT_NAME}/health-connection', methods=['GET'])
+@cross_origin()
 def health_check():
     status = urx_service.get_connection_status()
     if status != 0:
@@ -59,6 +65,7 @@ def health_check():
 
 
 @app.route(f'/{BOT_NAME}/gripper/partial', methods=['POST'])
+@cross_origin()
 def partial_gripper():
     try:
         validate_json_structure(request)
@@ -79,6 +86,7 @@ def partial_gripper():
 
 
 @app.route(f'/{BOT_NAME}/gripper/open', methods=['POST'])
+@cross_origin()
 def open_gripper():
     try:
         logger.info(f'Entered POST /{BOT_NAME}/gripper/open')
@@ -90,6 +98,7 @@ def open_gripper():
 
 
 @app.route(f'/{BOT_NAME}/gripper/close', methods=['POST'])
+@cross_origin()
 def close_gripper():
     try:
         logger.info(f'Entered POST /{BOT_NAME}/gripper/close')
@@ -101,6 +110,7 @@ def close_gripper():
 
 
 @app.route(f'/{BOT_NAME}/movej', methods=['POST'])
+@cross_origin()
 def movej():
     try:
         validate_json_structure(request)
@@ -112,7 +122,7 @@ def movej():
         pose_object = data.get('pose_object', True)
         relative = data.get('relative', False)
         moved_to = urx_service.movej(joint_positions, acceleration, velocity, pose_object, relative)
-        return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
+        return ApiResponse(200, {"status": moved_to}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
@@ -125,6 +135,7 @@ def movej():
 
 
 @app.route(f'/{BOT_NAME}/movel', methods=['POST'])
+@cross_origin()
 def movel():
     try:
         validate_json_structure(request)
@@ -136,7 +147,7 @@ def movel():
         pose_object = data.get('pose_object', True)
         relative = data.get('relative', False)
         moved_to = urx_service.movel(coordinates_and_angles, acceleration, velocity, pose_object, relative)
-        return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
+        return ApiResponse(200, {"status": moved_to}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
@@ -149,6 +160,7 @@ def movel():
 
 
 @app.route(f'/{BOT_NAME}/movels', methods=['POST'])
+@cross_origin()
 def movels():
     try:
         validate_json_structure(request)
@@ -158,7 +170,7 @@ def movels():
         acceleration = data.get('acceleration', None)
         velocity = data.get('velocity', None)
         moved_to = urx_service.movels(coordinates_list, acceleration, velocity)
-        return ApiResponse(200, {"status": f"Moved successfully to last position: {moved_to}"}).to_json()
+        return ApiResponse(200, {"status": moved_to}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
@@ -171,17 +183,18 @@ def movels():
 
 
 @app.route(f'/{BOT_NAME}/move', methods=["POST"])
+@cross_origin()
 def move():
     try:
         validate_json_structure(request)
         data = MoveRequestSchema().load(request.json)
         logger.info(f'Entered POST /{BOT_NAME}/move')
         direction = data["direction"]
-        distance = data["distance"]
+        distance = data.get("distance", None)
         acceleration = data.get("acceleration", None)
         velocity = data.get("velocity", None)
         moved_to = getattr(urx_service, direction)(distance, acceleration, velocity)
-        return ApiResponse(200, {"status": f"Moved successfully to {str(moved_to)}"}).to_json()
+        return ApiResponse(200, {"status": moved_to}).to_json()
     except ValidationError as e:
         logger.error(f'Error: {str(e)}')
         return ApiResponse(400, {"status": f"Error: {e.messages}"}).to_json()
@@ -194,6 +207,7 @@ def move():
 
 
 @app.route(f'/{BOT_NAME}/config', methods=['GET'])
+@cross_origin()
 def get_config():
     try:
         logger.info(f'Entered GET /{BOT_NAME}/config')
@@ -219,6 +233,7 @@ def get_config():
 
 
 @app.route(f'/{BOT_NAME}/config', methods=['POST'])
+@cross_origin()
 def set_config():
     try:
         validate_json_structure(request)
@@ -276,6 +291,7 @@ def set_config():
 
 
 @app.route(f'/{BOT_NAME}/current-pose', methods=['GET'])
+@cross_origin()
 def get_current_pose():
     try:
         logger.info(f'Entered GET /{BOT_NAME}/current-pose')
@@ -291,6 +307,7 @@ def get_current_pose():
 
 
 @app.route(f'/{BOT_NAME}/current-joint-positions', methods=['GET'])
+@cross_origin()
 def get_current_joint_positions():
     try:
         logger.info(f'Entered GET /{BOT_NAME}/current-joint-positions')
@@ -306,6 +323,7 @@ def get_current_joint_positions():
 
 
 @app.route(f'/{BOT_NAME}/current-tool-position', methods=['GET'])
+@cross_origin()
 def get_current_tool_position():
     try:
         logger.info(f'Entered GET /{BOT_NAME}/current-tool-position')
@@ -321,9 +339,5 @@ def get_current_tool_position():
 
 
 if __name__ == "__main__":
-    if os.getenv("ENVIRONMENT") == "dev":
-        urx_service = MockUrxEService()
-    else:
-        urx_service = DefaultUrxEService(logger=logger)
     logger.info(f"Flask server starting at {os.getenv('FLASK_HOST')}:{os.getenv('FLASK_PORT')}")
     serve(app, host=os.getenv("FLASK_HOST"), port=os.getenv("FLASK_PORT"))
