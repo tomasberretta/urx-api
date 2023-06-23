@@ -1,12 +1,15 @@
 import os
 import socket
 import time
+
 import numpy as np
 import urx
 import urx.urrobot
 from dotenv import load_dotenv
 from urx import robotiq_two_finger_gripper
-from utils import Logger, get_acceleration_and_velocity_to_use, parse_movel_instruction, parse_movej_instruction
+
+from logger import Logger
+from utils import get_acceleration_and_velocity_to_use, parse_movel_instruction, parse_movej_instruction
 
 load_dotenv()
 

@@ -1,6 +1,7 @@
 import os
-import subprocess
 import platform
+import subprocess
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,34 +17,19 @@ else:
     run_env.append("source")
     run_env.append("venv/bin/activate")
 
-if os.environ.get("PROXY") == "True":
-    run_start_socket_server = []
-    run_start_socket_server += run_env
-    run_start_socket_server.append("&&")
-    run_start_socket_server.append("python")
-    run_start_socket_server.append("socket_server.py")
+if os.environ.get("PROXY") in {"True"}:
+    run_start_socket_server = run_env + ["&&", "python", "socket_server.py"]
     to_run.append(run_start_socket_server)
 
-    run_start_proxy_server = []
-    run_start_proxy_server += run_env
-    run_start_proxy_server.append("&&")
-    run_start_proxy_server.append("python")
-    run_start_proxy_server.append("proxy_server.py")
+    run_start_proxy_server = run_env + ["&&", "python", "proxy_server.py"]
     to_run.append(run_start_proxy_server)
 
-    run_start_main = []
-    run_start_main += run_env
-    run_start_main.append("&&")
-    run_start_main.append("python")
-    run_start_main.append("main.py")
-    to_run.append(run_start_main)
-else:
-    run_start_main = []
-    run_start_main += run_env
-    run_start_main.append("&&")
-    run_start_main.append("python")
-    run_start_main.append("main.py")
-    to_run.append(run_start_main)
+run_start_main = run_env + ["&&", "python", "main.py"]
+to_run.append(run_start_main)
+
+if os.environ.get("LISTENER") in {"True"}:
+    run_start_socket_listener = run_env + ["&&", "python", "socket_listener.py"]
+    to_run.append(run_start_socket_listener)
 
 for run in to_run:
     cmd = " ".join(run)
@@ -52,6 +38,7 @@ for run in to_run:
 
     if system == "Windows":
         from subprocess import CREATE_NEW_CONSOLE
+
         subprocess.Popen(["cmd", "/c", cmd], creationflags=CREATE_NEW_CONSOLE)
 
         # Alternatively, you can use start to open a new console window and execute the cmd string

@@ -1,8 +1,10 @@
 import os
+
 from dotenv import load_dotenv
 from flask import Flask
 from flask_socketio import SocketIO, emit
-from utils import Logger
+
+from logger import Logger
 
 load_dotenv()
 WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST")
@@ -15,6 +17,7 @@ app = Flask(__name__)
 socketio = SocketIO(app)
 
 logger = Logger("Socket Server")
+
 
 # Define a route for the index page
 @app.route('/')

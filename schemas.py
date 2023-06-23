@@ -4,8 +4,10 @@ from marshmallow import Schema, fields, validate, validates_schema, ValidationEr
 class PartialGripperRequestSchema(Schema):
     amount = fields.Integer(required=True, validate=lambda x: 0 <= x <= 255)
 
+
 class MoveRequestSchema(Schema):
-    direction = fields.Str(required=True, validate=validate.OneOf(["up", "down", "left", "right", "forward", "backward", "roll", "pitch", "yaw"]))
+    direction = fields.Str(required=True, validate=validate.OneOf(
+        ["up", "down", "left", "right", "forward", "backward", "roll", "pitch", "yaw"]))
     distance = fields.Float(required=False)
     acceleration = fields.Float(required=False, missing=None, validate=lambda x: x >= 0)
     velocity = fields.Float(required=False, missing=None, validate=lambda x: x >= 0)
@@ -21,7 +23,6 @@ class MoveRequestSchema(Schema):
             # do not allow negative numbers for other directions
             if distance < 0:
                 raise ValidationError("Distance must be non-negative for this direction.")
-
 
 
 class MoveJRequestSchema(Schema):

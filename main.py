@@ -1,15 +1,18 @@
 import json
 import os
 from logging.config import dictConfig
+
 from dotenv import load_dotenv
 from flask import Flask, request
+from flask_cors import CORS, cross_origin
 from marshmallow import ValidationError
 from waitress import serve
-from flask_cors import CORS, cross_origin
+
+from logger import FlaskLogger, ColorFormatter
 from schemas import PartialGripperRequestSchema, SetConfigRequestSchema, MoveJRequestSchema, \
     MoveLRequestSchema, MoveLSRequestSchema, MoveRequestSchema
 from urx_service import DefaultUrxEService, MockUrxEService
-from utils import ApiResponse, FlaskLogger, validate_json_structure, ColorFormatter
+from utils import ApiResponse, validate_json_structure
 
 load_dotenv()
 
@@ -37,10 +40,14 @@ BOT_NAME = os.getenv("BOT_NAME")
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-if os.getenv("ENVIRONMENT") == "dev":
-    urx_service = MockUrxEService()
-else:
-    urx_service = DefaultUrxEService(logger=logger)
+try:
+    if os.getenv("ENVIRONMENT") == "dev":
+        urx_service = MockUrxEService()
+    else:
+        urx_service = DefaultUrxEService(logger=logger)
+except Exception as e:
+    logger.error(f"Failed to initialize UrxEService: {e}")
+    exit(1)
 
 
 @app.route("/")

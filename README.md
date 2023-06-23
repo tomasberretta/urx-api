@@ -1,7 +1,7 @@
 # URX API Server 
-This server is a Python application that uses Flask as a web framework to create an API for controlling a UR5e robot. The API allows users to send commands to the robot and receive feedback. The server relies on the urx library, which provides a Python interface for the URScript language that the robot understands.
+This project is a Python application that uses Flask to create a REST API for controlling a UR5e robot. The API lets users send URScript commands to the robot and get feedback. The project also has two features for observing the robot’s data: a Socket Listener and a Proxy with a Socket Server. The Socket Listener can passively monitor the data sent between the robot and the REST server. The Proxy can act as an intermediary between the REST server and the robot, and forward every message to the Socket Server for real-time observability. This way, users can watch the robot’s status and actions without affecting its operation.
 
-Additionally, the server has a functionality of passively observing the data sent between the robot and the REST server with a Proxy and another Socket Server. This works as follows: The REST server connects to the Proxy instead of the robot directly, and with every communication that is sent between them, the Proxy sends a message to the Socket Server to allow real-time observability. This way, users can monitor the robot’s status and actions without interfering with its operation.
+___Note:__ Even though there are Linux configurations, the project was only tested on Windows and MacOS._ 
 
 ## Prerequisites
 - Python 3.8.0
@@ -18,7 +18,7 @@ pip install -r requirements.txt
 python setup.py 
 ```
 ## Environment variables
-There are 10 environment variables that need to be set:
+There are 12 environment variables that need to be set:
 - FLASK_HOST
 - FLASK_PORT
 - URX_HOST
@@ -29,6 +29,8 @@ There are 10 environment variables that need to be set:
 - PROXY_PORT
 - WEBSOCKET_HOST
 - WEBSOCKET_PORT
+- LISTENER 
+- LISTENER_SLEEP_TIME
 
 Their default values are on the `.env` file and are:
 - FLASK_HOST = 127.0.0.1
@@ -41,6 +43,8 @@ Their default values are on the `.env` file and are:
 - PROXY_PORT=9090
 - WEBSOCKET_HOST=127.0.0.1
 - WEBSOCKET_PORT=5000
+- LISTENER=False
+- LISTENER_SLEEP_TIME=1
 
 ___Note:__ There is also an `ENVIRONMENT` environment variable that is used to set the environment to `dev` or `bot`. The default value is `bot`. If the value is `dev` the server will not try to connect to the robot._
 

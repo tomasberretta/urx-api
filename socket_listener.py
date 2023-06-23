@@ -3,21 +3,25 @@ import socket
 import time
 
 from dotenv import load_dotenv
-from utils import Logger
+
+from logger import Logger
 
 load_dotenv()
 URX_HOST = os.getenv("URX_HOST")
 URX_PORT = int(os.getenv("URX_PORT"))
-
-robot_ip = URX_HOST
-robot_port = URX_PORT
+LISTENER_SLEEP_TIME = int(os.getenv("LISTENER_SLEEP_TIME")) if os.getenv("LISTENER_SLEEP_TIME") and int(
+    os.getenv("LISTENER_SLEEP_TIME")) >= 0 else 1
 
 logger = Logger("Socket Listener")
 
 robot_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-robot_conn.connect((robot_ip, robot_port))
+try:
+    robot_conn.connect((URX_HOST, URX_PORT))
+except ConnectionRefusedError:
+    logger.error(f"Failed to connect to robot at {URX_HOST}:{URX_PORT}")
+    exit(1)
 
-logger.info(f"Connected to robot at {robot_ip}:{robot_port}")
+logger.info(f"Connected to robot at {URX_HOST}:{URX_PORT}")
 
 while True:
     data = robot_conn.recv(1024)
@@ -29,4 +33,4 @@ while True:
                 logger.info(f"Message received: {data}")
         elif type(data) is str:
             logger.info(f"Message received: {data}")
-    time.sleep(1)
+    time.sleep(LISTENER_SLEEP_TIME)

@@ -1,7 +1,8 @@
 import socketio
 from dotenv import load_dotenv
 from scapy.all import *
-from utils import Logger
+
+from logger import Logger
 
 load_dotenv()
 URX_HOST = os.getenv("URX_HOST")
@@ -25,8 +26,12 @@ logger.info(f"Starting proxy server at {PROXY_HOST}:{PROXY_PORT}")
 
 # Create a socket object for the proxy server
 proxy = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-proxy.bind((PROXY_HOST, PROXY_PORT))  # Bind the proxy to any interface and port 8080
-proxy.listen(5)  # Listen for incoming connections
+try:
+    proxy.bind((PROXY_HOST, PROXY_PORT))  # Bind the proxy to any interface and port 8080
+    proxy.listen(5)  # Listen for incoming connections
+except OSError:
+    logger.error(f"Failed to start proxy server at {PROXY_HOST}:{PROXY_PORT}")
+    exit(1)
 
 # Accept a connection from the http server
 http_conn, http_addr = proxy.accept()
@@ -34,11 +39,16 @@ logger.info(f"Connected to http server at {http_addr}")
 
 # Connect to the robot
 robot_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-robot_conn.connect((robot_ip, robot_port))
-logger.info(f"Connected to robot at {robot_ip}:{robot_port}")
+try:
+    robot_conn.connect((robot_ip, robot_port))
+    logger.info(f"Connected to robot at {robot_ip}:{robot_port}")
+except ConnectionRefusedError:
+    logger.error(f"Failed to connect to robot at {robot_ip}:{robot_port}")
+    exit(1)
 
 # Create a socket io client object
 sio = socketio.Client()
+
 
 # Define a function to handle socket io connections
 @sio.event
@@ -53,7 +63,11 @@ def message(data):
 
 
 # Connect to the socket io server
-sio.connect(f"http://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}")
+try:
+    sio.connect(f"http://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}")
+except ConnectionRefusedError:
+    logger.error(f"Failed to connect to socket io server at {WEBSOCKET_HOST}:{WEBSOCKET_PORT}")
+    exit(1)
 
 logger.info(f"Proxy server successfully started at {PROXY_HOST}:{PROXY_PORT}")
 
@@ -62,9 +76,7 @@ logger.info(f"Proxy server successfully started at {PROXY_HOST}:{PROXY_PORT}")
 def forward_data(src, dst):
     data = src.recv(1024)  # Receive up to 1024 bytes of data from the source socket
     if data:  # If there is any data
-        logger.info(f"Forwarding {len(data)} bytes of data from {src.getpeername()} to {dst.getpeername()}")
-        logger.info(data)
-        # Send a message to the socket io server
+        logger.info(f"Forwarding from {src.getpeername()} to {dst.getpeername()} : {data}")
         sio.send(data)
         dst.send(data)  # Send the data to the destination socket
         return True  # Return True to indicate success
